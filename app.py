@@ -2,12 +2,13 @@ from flask import Flask, render_template, request
 import numpy as np
 import requests
 import json
+import os
 from collections import Counter
 
 app = Flask(__name__)
 
 # ============ KONFIG OPENROUTER ============
-OPENROUTER_API_KEY = "api keyy"
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 HEADERS = {
