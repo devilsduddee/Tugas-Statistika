@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Statistik Deskriptif AI</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        /* ===== AI BOX ===== */
+        .ai-box {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-line;
+        }
+
+        /* ===== VISUALISASI GARIS KUARTIL ===== */
+        .number-line-container {
+            position: relative;
+            margin-top: 30px;
+            margin-bottom: 50px;
+            height: 140px;
+            width: 100%;
+        }
+
+        .main-line {
+            position: absolute;
+            top: 70px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+        }
+
+        .marker {
+            position: absolute;
+            top: 20px;
+            transform: translateX(-50%);
+            text-align: center;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .marker .line {
+            width: 0;
+            height: 45px;
+            margin: 5px auto 0 auto;
+            border-left: 3px solid;
+        }
+
+        .marker.q1 .line { border-color: green; }
+        .marker.q2 .line { border-color: orange; }
+        .marker.q3 .line { border-color: red; }
+
+        .marker.q1 span { color: green; }
+        .marker.q2 span { color: orange; }
+        .marker.q3 span { color: red; }
+
+        /* Label skala */
+        .scale-label {
+            position: absolute;
+            top: 85px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .scale-label.min { left: 0; }
+        .scale-label.max { right: 0; }
+
+        /* ===== RESPONSIVE FIX ===== */
+        @media (max-width: 768px) {
+            .number-line-container {
+                height: 120px;
+            }
+
+            .marker span {
+                font-size: 12px;
+            }
+
+            .ai-box {
+                max-height: 200px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+<div class="container-fluid container-lg py-4">
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <h2 class="mb-2">📊 Web App Statistik Deskriptif + AI</h2>
+            <p class="text-muted">Masukkan data numerik (dipisahkan dengan koma).</p>
+
+            {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+
+            <!-- FORM INPUT -->
+            <form method="post" class="mb-4">
+                <div class="mb-3">
+                    <label class="form-label">Data</label>
+                    <textarea name="data" class="form-control" rows="3"
+                        placeholder="Contoh: 60,70,80,80,90,75,70,85"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 w-md-auto">
+                    🚀 Proses Data
+                </button>
+            </form>
+
+            {% if hasil %}
+            <hr>
+
+            <!-- HASIL STATISTIK -->
+            <h4 class="mb-3">📌 Hasil Statistik</h4>
+            <div class="row g-3">
+                <div class="col-12 col-lg-4">
+                    <ul class="list-group">
+                        <li class="list-group-item">Jumlah Data (n): <b>{{ hasil.n }}</b></li>
+                        <li class="list-group-item">Mean: <b>{{ hasil.mean }}</b></li>
+                        <li class="list-group-item">Median: <b>{{ hasil.median }}</b></li>
+                        <li class="list-group-item">Modus: <b>{{ hasil.modus }}</b></li>
+                        <li class="list-group-item">Q1: <b>{{ hasil.Q1 }}</b></li>
+                        <li class="list-group-item">Q2: <b>{{ hasil.Q2 }}</b></li>
+                        <li class="list-group-item">Q3: <b>{{ hasil.Q3 }}</b></li>
+                    </ul>
+                </div>
+
+                <!-- TABEL FREKUENSI -->
+                <div class="col-12 col-lg-8">
+                    <h5>📋 Tabel Distribusi Frekuensi</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-sm">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Nilai</th>
+                                    <th>Frekuensi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in tabel %}
+                                <tr>
+                                    <td>{{ row.nilai }}</td>
+                                    <td>{{ row.frekuensi }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISUALISASI KUARTIL -->
+            <hr>
+            <h4>📏 Visualisasi Garis Kuartil</h4>
+
+            <div class="number-line-container"
+                id="quartile-container"
+                data-q1="{{ q1_pos }}"
+                data-q2="{{ q2_pos }}"
+                data-q3="{{ q3_pos }}">
+
+                <div class="main-line"></div>
+
+                <div class="scale-label min">Min</div>
+                <div class="scale-label max">Max</div>
+
+                <div class="marker q1" id="mark-q1">
+                    <span>Q1 ({{ hasil.Q1 }})</span>
+                    <div class="line"></div>
+                </div>
+
+                <div class="marker q2" id="mark-q2">
+                    <span>Median ({{ hasil.Q2 }})</span>
+                    <div class="line"></div>
+                </div>
+
+                <div class="marker q3" id="mark-q3">
+                    <span>Q3 ({{ hasil.Q3 }})</span>
+                    <div class="line"></div>
+                </div>
+            </div>
+
+            <!-- KESIMPULAN AI -->
+            <hr>
+            <h4>🤖 Kesimpulan dari AI</h4>
+            <div class="ai-box">
+                {{ kesimpulan }}
+            </div>
+
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT POSISI GARIS -->
+<script>
+const container = document.getElementById("quartile-container");
+if (container) {
+    document.getElementById("mark-q1").style.left = container.dataset.q1 + "%";
+    document.getElementById("mark-q2").style.left = container.dataset.q2 + "%";
+    document.getElementById("mark-q3").style.left = container.dataset.q3 + "%";
+}
+</script>
+
+</body>
+</html>
